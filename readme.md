@@ -31,14 +31,14 @@ if you are using bundler to get the gem dependencies.
 
 fogrunner gets your AWS credentials via environment variables or a config file.
 
-### ENV
+#### ENV
 
-````
+```` ruby
 ENV['AWS_ACCESS_KEY']
 ENV['AWS_SECRET_KEY']
 ````
 
-### config file
+#### config file
 
 fogrunner uses the same config file as the AWI CLI, located in ~/.aws/config
 
@@ -95,6 +95,25 @@ Use --help for each command for additional command options:
 $ bundle exec ruby fogrunner.rb scale --help
 ````
 
+Example for status command:
+
+````
+$ bundle exec ruby fogrunner.rb status
+7 servers in region eu-west-1
+i-XXXXXXXX nameA    : stopped t1.micro   eu-west-1b     
+i-XXXXXXXX nameB    : stopped t1.micro   eu-west-1c     
+i-XXXXXXXX nameC    : stopped c1.xlarge  eu-west-1c     
+i-XXXXXXXX nameD    : running m1.xlarge  eu-west-1c      DNS/IP: XXXXXXXX.eu-west-1.compute.amazonaws.com (A.B.C.D)
+i-XXXXXXXX nameE    : stopped t1.micro   eu-west-1b     
+i-XXXXXXXX nameF    : running m3.large   eu-west-1a      DNS/IP: XXXXXXXX.eu-west-1.compute.amazonaws.com (A.B.C.D)
+i-XXXXXXXX nameG    : running m1.small   eu-west-1b      DNS/IP: XXXXXXXX.eu-west-1.compute.amazonaws.com (A.B.C.D)
+2 servers in region us-east-1
+i-XXXXXXXX nameH    : running m1.small   us-east-1e      DNS/IP: XXXXXXXX.compute-1.amazonaws.com (A.B.C.D)
+i-XXXXXXXX nameI    : stopped m1.medium  us-east-1a     
+0 servers in region ap-southeast-1
+0 servers in region ap-northeast-1
+```
+
 ## Instance Name Tag
 
 ## Snapshots
@@ -109,17 +128,17 @@ sudo ec2-consistent-snapshot --region <region> --mysql --freeze-filesystem <moun
 It is important to include the hostname in the snapshot description. fogrunner uses the hostname to associate a snapshot with an EC2 instance. 
 You don't have to use consistent-snapshot for fogrunner. But if you would like fogrunner to manage your snapshots you need to set a snapshot description, which allows fogrunner to connect the instance and it's snapshots.
 
-### References
+## References
 
 * EC2 consistent snapshot https://github.com/alestic/ec2-consistent-snapshot
 * fog - the ruby cloud services library https://github.com/fog/fog
 * AWS CLI config http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html
 
 
-### Contributing
+## Contributing
 
 I would like to hear from you. Comments, questions, tips, tests and pull requests are always welcome.
 
-### License
+## License
 
-See [License.md](License.md)
+See [MIT License](LICENSE.txt)

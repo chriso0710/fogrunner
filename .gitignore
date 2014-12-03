@@ -17,3 +17,5 @@ nbproject
 .idea/workspace.xml
 .idea/tasks.xml
 .env
+*.sublime-project
+*.sublime-workspace
