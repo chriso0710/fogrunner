@@ -1,0 +1,16 @@
+source :rubygems
+
+ruby "1.9.3"
+
+group :development do
+	gem "wirble"
+end
+
+gem "awesome_print"
+gem "fog", "1.23.0"
+#gem "fog", :git => 'git://github.com/fog/fog.git'
+gem "colorize"
+gem "trollop"
+gem "excon", ">= 0.38"
+#gem "excon"
+gem "parseconfig"
