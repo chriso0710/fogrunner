@@ -19,3 +19,4 @@ nbproject
 .env
 *.sublime-project
 *.sublime-workspace
+.rvmrc

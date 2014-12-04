@@ -1,5 +1,3 @@
-#! /usr/bin/env ruby
-
 require 'fog'
 require 'ap'
 require 'trollop'
@@ -16,14 +14,14 @@ SUB_COMMANDS 		= {"regions" => :c_regions, "status" => :c_status, "s3status" => 
 $stdout.sync = true
 
 class FogRunner
-	CONFIGPATH 			= ENV['HOME']+'/.aws/config'
+	CONFIGPATH = ENV['HOME']+'/.aws/config'
 
-	def initialize(profile, regions = DEFAULT_REGIONS, verbose = FALSE)
+	def initialize(profile, regions = DEFAULT_REGIONS, verbose = FALSE, debug = FALSE)
 		@configsection = profile
 		@verbose = verbose
 
 		@logger = Logger.new($stdout)
-		verbose ? @logger.level = Logger::INFO : @logger.level = Logger::FATAL
+		debug ? @logger.level = Logger::DEBUG : @logger.level = Logger::FATAL
 		@logger.info "Connecting to AWS"
 		@logger.ap credentials
 		
@@ -59,7 +57,6 @@ class FogRunner
 			  	:aws_secret_access_key    => ENV['AWS_SECRET_KEY'],
 			} )
 		end
-		@logger.ap c
 		c
 	end
 
@@ -86,6 +83,7 @@ class FogRunner
 	def output_server(server)
 		printf "%-10s %-15s: %-10s %-10s %-15s", server.id, server.tags["Name"], output_state(server.state), server.flavor_id, server.availability_zone, server.dns_name, server.public_ip_address
 		printf " DNS/IP: %s (%s)", server.dns_name, server.public_ip_address if server.dns_name
+		printf " Tags: %s", server.tags if @verbose
 		printf("\n")
 	end
 
@@ -126,7 +124,7 @@ class FogRunner
 	end
 
 	def snapshots_normal(region, serversnaps, server, limitserver, remove)
-		# show and optionally delete snapshots with special logic (keep current month completely, keep 1 and 15 day in last month)
+		# show and optionally delete snapshots with special logic (see README)
 		# group by year and month, make hash
 		# http://stackoverflow.com/questions/5639921/group-a-ruby-array-of-dates-by-month-and-year-into-a-hash
 		hash_by_year = Hash[
@@ -162,7 +160,7 @@ class FogRunner
 	end
 
 	def snapshots_full(region, serversnaps, server, limitserver, remove)
-		# show and optionally delete all snapshots but the latest
+		# show and optionally delete all snapshots but the latest (see README)
 		a = serversnaps
 		if a.any?
 			puts "   #{a.size} snapshots from #{a.first.created_at.to_date} to #{a.last.created_at.to_date}, Total size #{a.map(&:volume_size).inject(0, :+)} GB"
@@ -207,7 +205,7 @@ class FogRunner
 			output_server(server) if server
 		else
 			@compute.each_value do |region| 
-				puts "#{region.servers.length} servers in region #{region.region}".colorize(:blue)
+				puts "#{region.servers.length} servers in region #{region.region}".colorize(:blue) if @verbose
 				region.servers.select do |s|
 					output_server(s)
 				end
@@ -247,7 +245,7 @@ class FogRunner
 			end
 			zones.each do |z|
 				puts "#{z.domain}".colorize(:blue) if @verbose
-				if oldip 
+				if oldip
 					records = z.records.all!.select {|e| e.value.join(" ").include? oldip}
 				else
 					records = z.records.all!
@@ -269,15 +267,7 @@ class FogRunner
 	end
 
 	def find_server_region(server)
-		serverregion = nil
-		@compute.each do |region|
-			@logger.ap region
-			@logger.ap server.availability_zone
-			if server.availability_zone.scan(region[0]).any?
-				serverregion = region[1]
-			end
-		end
-		serverregion
+		@compute[server.availability_zone.chop]
 	end
 
 	def scale(servername, type, noaddress = FALSE, nostart = FALSE)
@@ -336,7 +326,7 @@ end
 
 
 opts = Trollop::options do
-  	version("fogrunner " + VERSION)
+  	version "fogrunner " + VERSION
   	banner <<-EOS
 Fogrunner - AWS Simple CLI
 (AWS credentials via environment variables AWS_*_KEY or ~/.aws/config)
@@ -347,14 +337,15 @@ Usage:
 where [command] is one of:
 	status: Show EC2 status
  	s3status: Show S3 status
- 	scale: Scale EC2 instance, set new instance type
  	regions: Show all regions
- 	dns: Show DNS records
- 	snapshots: Show/delete snapshots
+ 	scale: Scale EC2 instance, set new instance type
+ 	dns: Show DNS records, set new IP for A records
+ 	snapshots: Show and delete snapshots
 
 where [options] are:
 EOS
-  	opt :debug, "Verbose output"
+  	opt :verb, "Verbose output"
+  	opt :debug, "More verbose debug output"
   	opt :region, "Set AWS regions", :type => :string, :default => DEFAULT_REGIONS
   	opt :profile, "Set profile from ~/.aws/config", :type => :string, :default => DEFAULT_SECTION
   	opt :dryrun, "Mock & simulate"
@@ -370,7 +361,7 @@ cmd_opts = case SUB_COMMANDS[cmd]
   	when :c_s3status # no options
   	when :c_dns 
   		Trollop::options do
-  			opt :domain, "Find zone by domainname substring", :type => :string
+  			opt :domain, "Find zone by domainname regex", :type => :string
     		opt :ip, "Find record by ip", :type => :string
     		opt :newip, "Set new IP for A record", :type => :string
     		opt :modify, "Make modification"
@@ -393,12 +384,12 @@ cmd_opts = case SUB_COMMANDS[cmd]
     	Trollop::die "unknown command #{cmd.inspect}"
 end
 
-#ap opts
-#ap cmd_opts
+ap opts if opts[:debug]
+ap cmd_opts if opts[:debug]
 
 Fog.mock! if opts[:dryrun]
 
-aws = FogRunner.new(opts[:profile], opts[:region], opts[:debug])
+aws = FogRunner.new(opts[:profile], opts[:region], opts[:verb], opts[:debug])
 
 case SUB_COMMANDS[cmd]
 	when :c_status
